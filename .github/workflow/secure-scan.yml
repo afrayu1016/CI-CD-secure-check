@@ -1,12 +1,30 @@
 name: Secure Code Scan
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
-  scan:
+  secure-scan:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # 如果你之後有 requirements.txt
+          # pip install -r requirements.txt
+
       - name: Run secure code scanner
         run: |
-          python scanner.py $(git ls-files '*.py')
+          python scanner.py --rules rules.json .
