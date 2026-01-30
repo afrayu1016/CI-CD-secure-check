@@ -1,0 +1,12 @@
+name: Secure Code Scan
+
+on: [push, pull_request]
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run secure code scanner
+        run: |
+          python scanner.py $(git ls-files '*.py')

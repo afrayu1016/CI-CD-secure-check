@@ -1,0 +1,25 @@
+{
+    "rules": [
+        {
+            "id": "PY001",
+            "language": "python",
+            "pattern": "\\beval\\(",
+            "severity": "HIGH",
+            "message": "Use of eval() can lead to code injection."
+        },
+        {
+            "id": "PY002",
+            "language": "python",
+            "pattern": "\\bexec\\(",
+            "severity": "HIGH",
+            "message": "Use of exec() is dangerous and should be avoided."
+        },
+        {
+            "id": "PY003",
+            "language": "python",
+            "pattern": "subprocess\\.Popen\\(",
+            "severity": "HIGH",
+            "message": "subprocess.Popen may lead to command injection if inputs are not sanitized."
+        }
+    ]
+}
