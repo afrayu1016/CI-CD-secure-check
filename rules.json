@@ -20,6 +20,62 @@
             "pattern": "subprocess\\.Popen\\(",
             "severity": "HIGH",
             "message": "subprocess.Popen may lead to command injection if inputs are not sanitized."
+        },
+        {
+            "id": "PY004",
+            "language": "python",
+            "pattern": "os\\.system\\(",
+            "severity": "HIGH",
+            "message": "Use of os.system() can lead to command injection."
+        },
+        {
+            "id": "PY005",
+            "language": "python",
+            "pattern": "subprocess\\.call\\(",
+            "severity": "HIGH",
+            "message": "subprocess.call() may lead to command injection if inputs are not sanitized."
+        },
+        {
+            "id": "PY006",
+            "language": "python",
+            "pattern": "subprocess\\.run\\(",
+            "severity": "MEDIUM",
+            "message": "subprocess.run() can be dangerous when used with shell=True or unsanitized input."
+        },
+        {
+            "id": "PY007",
+            "language": "python",
+            "pattern": "pickle\\.loads?\\(",
+            "severity": "HIGH",
+            "message": "Untrusted deserialization using pickle can lead to remote code execution."
+        },
+        {
+            "id": "PY008",
+            "language": "python",
+            "pattern": "yaml\\.load\\(",
+            "severity": "HIGH",
+            "message": "yaml.load() without a safe loader can execute arbitrary code."
+        },
+        {
+            "id": "PY009",
+            "language": "python",
+            "pattern": "(password|passwd|secret|token)\\s*=\\s*['\"][^'\"]+['\"]",
+            "severity": "HIGH",
+            "message": "Hardcoded credentials detected. Secrets should not be stored in source code."
+        },
+        {
+            "id": "PY010",
+            "language": "python",
+            "pattern": "hashlib\\.md5\\(",
+            "severity": "MEDIUM",
+            "message": "MD5 is cryptographically broken and should not be used."
+        },
+        {
+            "id": "PY011",
+            "language": "python",
+            "pattern": "verify\\s*=\\s*False",
+            "severity": "MEDIUM",
+            "message": "Disabling SSL certificate verification is insecure."
         }
     ]
 }
