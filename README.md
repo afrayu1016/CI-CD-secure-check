@@ -28,3 +28,12 @@ Designed to integrate seamlessly with **Git pre-commit hooks** and **GitHub Acti
 │   └── workflows/
 │       └── secure-scan.yml # GitHub Actions workflow
 └── README.md
+```
+---
+## Usage
+
+### Scan a Single File
+
+```bash
+python scanner.py test.py
+```
