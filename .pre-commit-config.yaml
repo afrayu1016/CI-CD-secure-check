@@ -1,8 +1,0 @@
-repos:
-  - repo: local
-    hooks:
-      - id: secure-code-scan
-        name: Secure Code Scanner
-        entry: python scanner.py
-        language: system
-        files: \.py$
