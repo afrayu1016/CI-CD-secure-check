@@ -1,12 +1,28 @@
 name: Secure Code Scan
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
-  scan:
+  secure-scan:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
       - name: Run secure code scanner
         run: |
-          python scanner.py $(git ls-files '*.py')
+          python scanner.py \
+            --mode ci \
+            --rules rules.json \
+            --fail-level HIGH \
+            .

@@ -1,38 +1,62 @@
+#!/usr/bin/env python3
+import argparse
 import json
 import re
 import sys
-import argparse
+import subprocess
 from pathlib import Path
 
-RULE_FILE = "rule.json"
-SEVERITY_ORDER = {"LOW": 1, "MEDIUM": 2, "HIGH": 3}
+SEVERITY_ORDER = {
+    "LOW": 1,
+    "MEDIUM": 2,
+    "HIGH": 3
+}
 
-def load_rules():
-    with open(RULE_FILE, "r") as f:
+# ---------- Rule Loading ----------
+
+def load_rules(rule_file: str):
+    with open(rule_file, "r") as f:
         data = json.load(f)
     return data["rules"]
 
-def get_language(file_path):
-    if file_path.endswith(".py"):
+# ---------- Language Detection ----------
+
+def get_language(path: Path):
+    if path.suffix == ".py":
         return "python"
     return None
 
-def parse_args():
-    parser = argparse.ArgumentParser(description="Secure Code Scanner")
-    parser.add_argument(
-        "files",
-        nargs="+",
-        help="Files to scan"
-    )
-    parser.add_argument(
-        "--fail-level",
-        default="HIGH",
-        choices=SEVERITY_ORDER.keys(),
-        help="Minimum severity level to fail"
-    )
-    return parser.parse_args()
+# ---------- Git Helpers (local mode) ----------
 
-def scan_file(path, rules, fail_level):
+def get_staged_files():
+    """
+    Return staged files (git add-ed files)
+    """
+    result = subprocess.run(
+        ["git", "diff", "--cached", "--name-only", "--diff-filter=ACM"],
+        capture_output=True,
+        text=True
+    )
+
+    files = []
+    for line in result.stdout.splitlines():
+        path = Path(line)
+        if path.exists() and path.suffix == ".py":
+            files.append(path)
+
+    return files
+
+# ---------- File Iteration (ci mode) ----------
+
+def iter_python_files(target: Path):
+    if target.is_file():
+        yield target
+    elif target.is_dir():
+        yield from target.rglob("*.py")
+
+# ---------- Scanner Core ----------
+
+def scan_file(path: Path, rules):
     findings = []
     lines = path.read_text(errors="ignore").splitlines()
 
@@ -51,41 +75,100 @@ def scan_file(path, rules, fail_level):
 
     return findings
 
+# ---------- CLI ----------
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Secure Code Scanner")
+
+    parser.add_argument(
+        "--mode",
+        choices=["local", "ci"],
+        default="ci",
+        help="Execution mode (local = staged files, ci = repository scan)"
+    )
+
+    parser.add_argument(
+        "--rules",
+        required=True,
+        help="Path to rules.json"
+    )
+
+    parser.add_argument(
+        "--fail-level",
+        choices=SEVERITY_ORDER.keys(),
+        default="HIGH",
+        help="Minimum severity level to fail"
+    )
+
+    parser.add_argument(
+        "targets",
+        nargs="*",
+        default=["."],
+        help="Files or directories to scan (used in ci mode)"
+    )
+
+    return parser.parse_args()
+
+# ---------- Main ----------
+
 def main():
     args = parse_args()
-    rules = load_rules()
+    rules = load_rules(args.rules)
     fail_threshold = SEVERITY_ORDER[args.fail_level]
 
     blocked = False
 
-    for file in args.files:
-        lang = get_language(file)
-        if not lang:
-            continue
+    if args.mode == "local":
+        print("🔍 Mode: local (staged files)")
+        targets = get_staged_files()
 
-        applicable_rules = [r for r in rules if r["language"] == lang]
-        findings = scan_file(Path(file), applicable_rules, fail_threshold)
+        if not targets:
+            print("ℹ️ No staged Python files to scan.")
+            sys.exit(0)
 
-        for f in findings:
-            rule = f["rule"]
-            severity = rule["severity"]
+    else:
+        print("🔍 Mode: ci (repository scan)")
+        targets = []
+        for t in args.targets:
+            targets.append(Path(t))
 
-            print(
-                f"❌ {f['file']}:{f['line']} "
-                f"[{rule['id']} | {severity}]\n"
-                f"    {rule['message']}\n"
-                f"    > {f['code']}\n"
-            )
+    for target in targets:
+        if args.mode == "ci":
+            files = iter_python_files(target)
+        else:
+            files = [target]
 
-            if SEVERITY_ORDER[severity] >= fail_threshold:
-                blocked = True
+        for file_path in files:
+            lang = get_language(file_path)
+            if not lang:
+                continue
+
+            applicable_rules = [
+                r for r in rules if r["language"] == lang
+            ]
+
+            findings = scan_file(file_path, applicable_rules)
+
+            for f in findings:
+                rule = f["rule"]
+                severity = rule["severity"]
+
+                print(
+                    f"❌ {f['file']}:{f['line']} "
+                    f"[{rule['id']} | {severity}]\n"
+                    f"    {rule['message']}\n"
+                    f"    > {f['code']}\n"
+                )
+
+                if SEVERITY_ORDER[severity] >= fail_threshold:
+                    blocked = True
 
     if blocked:
-        print("🚫 Commit/CI blocked due to security policy.")
+        print("❌ Security issues detected")
         sys.exit(1)
-
-    print("✅ Security scan passed.")
-    sys.exit(0)
+    else:
+        print("✅ No security issues found")
+        sys.exit(0)
 
 if __name__ == "__main__":
     main()
